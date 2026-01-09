@@ -1,25 +1,27 @@
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from .models import Visit
-from .serializers import VisitSerializer
+from rest_framework import generics, permissions
+from .models import Visit, VitalSign
+from .serializers import VisitSerializer, VitalSignSerializer
 
 
-class VisitListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = VisitSerializer
-
-    def get_queryset(self):
-        queryset = Visit.objects.select_related("patient").all()
-
-        # Optional filter: /api/visits/?patient_id=1
-        patient_id = self.request.query_params.get("patient_id")
-        if patient_id:
-            queryset = queryset.filter(patient_id=patient_id)
-
-        return queryset
-
-
-class VisitDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+class VisitListCreateAPIView(generics.ListCreateAPIView):
     queryset = Visit.objects.select_related("patient").all()
     serializer_class = VisitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class VisitDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Visit.objects.select_related("patient").all()
+    serializer_class = VisitSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class VitalSignListCreateAPIView(generics.ListCreateAPIView):
+    queryset = VitalSign.objects.select_related("visit", "visit__patient").all()
+    serializer_class = VitalSignSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class VitalSignDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = VitalSign.objects.select_related("visit", "visit__patient").all()
+    serializer_class = VitalSignSerializer
+    permission_classes = [permissions.IsAuthenticated]
