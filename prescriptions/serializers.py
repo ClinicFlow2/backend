@@ -1,13 +1,19 @@
 from rest_framework import serializers
-from .models import Prescription, PrescriptionItem
+from .models import Medication, Prescription, PrescriptionItem
 
 
-class PrescriptionItemSerializer(serializers.ModelSerializer):
+class MedicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medication
+        fields = ["id", "name", "form", "strength", "is_active"]
+
+
+# -------- Items (WRITE) --------
+class PrescriptionItemWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = PrescriptionItem
         fields = [
-            "id",
-            "medication_name",
+            "medication",  # FK id
             "dosage",
             "route",
             "frequency",
@@ -15,18 +21,36 @@ class PrescriptionItemSerializer(serializers.ModelSerializer):
             "instructions",
             "allow_outside_purchase",
         ]
-        read_only_fields = ["id"]
 
 
+# -------- Items (READ) --------
+class PrescriptionItemReadSerializer(serializers.ModelSerializer):
+    medication = MedicationSerializer()
+
+    class Meta:
+        model = PrescriptionItem
+        fields = [
+            "id",
+            "medication",
+            "dosage",
+            "route",
+            "frequency",
+            "duration",
+            "instructions",
+            "allow_outside_purchase",
+        ]
+
+
+# -------- Prescription (WRITE) --------
 class PrescriptionSerializer(serializers.ModelSerializer):
-    # ✅ Allow nested write
-    items = PrescriptionItemSerializer(many=True)
+    items = PrescriptionItemWriteSerializer(many=True)
 
     class Meta:
         model = Prescription
         fields = [
             "id",
             "visit",
+            "template_used",
             "notes",
             "items",
             "created_at",
@@ -38,7 +62,6 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop("items", [])
         prescription = Prescription.objects.create(**validated_data)
 
-        # bulk create items
         PrescriptionItem.objects.bulk_create(
             [PrescriptionItem(prescription=prescription, **item) for item in items_data]
         )
@@ -46,19 +69,12 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         return prescription
 
     def update(self, instance, validated_data):
-        """
-        Simple, safe behavior:
-        - Updates Prescription fields
-        - If 'items' is provided, replace all items (delete + recreate)
-        """
         items_data = validated_data.pop("items", None)
 
-        # update prescription fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # replace items if provided
         if items_data is not None:
             instance.items.all().delete()
             PrescriptionItem.objects.bulk_create(
@@ -66,3 +82,20 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             )
 
         return instance
+
+
+# -------- Prescription (READ detail) --------
+class PrescriptionDetailSerializer(serializers.ModelSerializer):
+    items = PrescriptionItemReadSerializer(many=True)
+
+    class Meta:
+        model = Prescription
+        fields = [
+            "id",
+            "visit",
+            "template_used",
+            "notes",
+            "items",
+            "created_at",
+            "updated_at",
+        ]
