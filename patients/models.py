@@ -8,6 +8,8 @@ class Patient(models.Model):
         ("F", "Female"),
     ]
 
+    patient_code = models.CharField(max_length=20, unique=True, blank=True, db_index=True)
+
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     sex = models.CharField(max_length=1, choices=SEX_CHOICES)
@@ -31,6 +33,15 @@ class Patient(models.Model):
 
     class Meta:
         ordering = ["last_name", "first_name"]
+
+    def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
+
+        # Generate code after we have an ID (first save)
+        if creating and not self.patient_code:
+            self.patient_code = f"PT-{self.id:06d}"  # e.g. PT-000012
+            super().save(update_fields=["patient_code"])
 
     def __str__(self):
         return f"{self.last_name} {self.first_name}"

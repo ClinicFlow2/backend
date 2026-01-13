@@ -81,9 +81,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-# If you later need cookies/auth headers from frontend:
-# CORS_ALLOW_CREDENTIALS = True
-
 # --------------------------------------------------
 # URLS / WSGI
 # --------------------------------------------------
