@@ -1,5 +1,11 @@
 from rest_framework import serializers
-from .models import Medication, Prescription, PrescriptionItem
+from .models import (
+    Medication,
+    Prescription,
+    PrescriptionItem,
+    PrescriptionTemplate,
+    PrescriptionTemplateItem,
+)
 
 
 class MedicationSerializer(serializers.ModelSerializer):
@@ -65,7 +71,6 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         PrescriptionItem.objects.bulk_create(
             [PrescriptionItem(prescription=prescription, **item) for item in items_data]
         )
-
         return prescription
 
     def update(self, instance, validated_data):
@@ -80,7 +85,6 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             PrescriptionItem.objects.bulk_create(
                 [PrescriptionItem(prescription=instance, **item) for item in items_data]
             )
-
         return instance
 
 
@@ -99,3 +103,43 @@ class PrescriptionDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+# -------- Templates (READ) --------
+class PrescriptionTemplateItemReadSerializer(serializers.ModelSerializer):
+    medication_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PrescriptionTemplateItem
+        fields = [
+            "id",
+            "medication",
+            "medication_display",
+            "dosage",
+            "route",
+            "frequency",
+            "duration",
+            "instructions",
+        ]
+
+    def get_medication_display(self, obj):
+        parts = [obj.medication.name]
+        if obj.medication.strength:
+            parts.append(obj.medication.strength)
+        if obj.medication.form:
+            parts.append(obj.medication.form)
+        return " ".join([p for p in parts if p])
+
+
+class PrescriptionTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrescriptionTemplate
+        fields = ["id", "name", "description", "is_active"]
+
+
+class PrescriptionTemplateDetailSerializer(serializers.ModelSerializer):
+    items = PrescriptionTemplateItemReadSerializer(many=True)
+
+    class Meta:
+        model = PrescriptionTemplate
+        fields = ["id", "name", "description", "is_active", "items"]
