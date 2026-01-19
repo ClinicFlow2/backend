@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
@@ -16,6 +17,16 @@ class Appointment(models.Model):
         "patients.Patient",
         on_delete=models.CASCADE,
         related_name="appointments",
+    )
+
+    # Doctor assigned to this appointment
+    doctor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="appointments",
+        help_text="Doctor assigned to this appointment",
     )
 
     # When

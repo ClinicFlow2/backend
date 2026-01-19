@@ -1,7 +1,26 @@
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Appointment
-from .serializers import AppointmentSerializer
+from .serializers import AppointmentSerializer, DoctorSerializer
+
+User = get_user_model()
+
+
+class DoctorListAPIView(APIView):
+    """List users with doctor role for appointment assignment."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Get users who have a profile with role 'doctor' or 'admin'
+        doctors = User.objects.filter(
+            profile__role__in=['doctor', 'admin']
+        ).select_related('profile').order_by('first_name', 'last_name')
+        serializer = DoctorSerializer(doctors, many=True)
+        return Response(serializer.data)
+
 
 class AppointmentListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = AppointmentSerializer
@@ -9,7 +28,7 @@ class AppointmentListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         qs = (
-            Appointment.objects.select_related("patient", "visit")
+            Appointment.objects.select_related("patient", "visit", "doctor", "doctor__profile")
             .filter(patient__created_by=self.request.user)
             .order_by("-scheduled_at")
         )
@@ -36,6 +55,6 @@ class AppointmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Appointment.objects.select_related("patient", "visit").filter(
+        return Appointment.objects.select_related("patient", "visit", "doctor", "doctor__profile").filter(
             patient__created_by=self.request.user
         )
