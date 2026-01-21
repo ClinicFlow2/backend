@@ -42,15 +42,15 @@ class PatientListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         is_admin = hasattr(user, 'profile') and user.profile.role == 'admin'
 
-        # Base queryset - admins see all patients, others see only their own
-        if is_admin:
-            qs = Patient.objects.all()
-        else:
-            qs = Patient.objects.filter(created_by=user)
+        # All authenticated staff can see all patients
+        qs = Patient.objects.all()
 
         # Filter by is_active status (default: show only active)
+        # Only admins can view archived patients
         show_archived = self.request.query_params.get('archived', 'false').lower() == 'true'
-        if not show_archived:
+        if show_archived and is_admin:
+            pass  # Show all including archived
+        else:
             qs = qs.filter(is_active=True)
 
         return (
@@ -79,14 +79,9 @@ class PatientDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         now = timezone.now()
-        user = self.request.user
-        is_admin = hasattr(user, 'profile') and user.profile.role == 'admin'
 
-        # Admins can access any patient, others only their own
-        if is_admin:
-            qs = Patient.objects.all()
-        else:
-            qs = Patient.objects.filter(created_by=user)
+        # All authenticated staff can access any patient
+        qs = Patient.objects.all()
 
         return (
             qs.annotate(
