@@ -125,8 +125,11 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
                 setattr(instance, field, validated_data.pop(field))
         instance.save()
 
-        # Update profile fields
-        profile = instance.profile
+        # Update profile fields - ensure profile exists
+        profile, _ = UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={'role': 'admin' if instance.is_superuser else 'nurse'}
+        )
         profile_fields = ['phone', 'specialization', 'license_number', 'department', 'hire_date', 'bio']
         for field in profile_fields:
             if field in validated_data:

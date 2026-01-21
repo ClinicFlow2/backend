@@ -24,16 +24,27 @@ class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def patch(self, request):
-        serializer = ProfileUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            # Return updated user data
-            return Response(MeSerializer(request.user).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            serializer = ProfileUpdateSerializer(
+                request.user,
+                data=request.data,
+                partial=True
+            )
+            if serializer.is_valid():
+                serializer.save()
+                # Return updated user data
+                return Response(MeSerializer(request.user).data)
+            logger.error(f"Profile update validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception(f"Profile update exception for user {request.user.id}: {str(e)}")
+            return Response(
+                {"detail": f"Server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ChangePasswordView(APIView):
