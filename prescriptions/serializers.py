@@ -92,6 +92,13 @@ class PrescriptionListSerializer(serializers.ModelSerializer):
 # -------- Prescription (WRITE) --------
 class PrescriptionSerializer(serializers.ModelSerializer):
     items = PrescriptionItemWriteSerializer(many=True)
+    # Patient is required
+    # Visit is optional (null=True, blank=True in model)
+    visit = serializers.PrimaryKeyRelatedField(
+        queryset=Prescription._meta.get_field('visit').related_model.objects.all(),
+        required=False,
+        allow_null=True
+    )
 
     class Meta:
         model = Prescription
@@ -109,11 +116,6 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
-
-        # If visit is provided but patient is not, get patient from visit
-        visit = validated_data.get("visit")
-        if visit and "patient" not in validated_data:
-            validated_data["patient"] = visit.patient
 
         prescription = Prescription.objects.create(**validated_data)
 
