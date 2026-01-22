@@ -45,7 +45,13 @@ class PrescriptionTemplateItem(models.Model):
 
 
 class Prescription(models.Model):
-    visit = models.ForeignKey(Visit, related_name="prescriptions", on_delete=models.CASCADE)
+    patient = models.ForeignKey(
+        "patients.Patient", related_name="prescriptions", on_delete=models.CASCADE
+    )
+    visit = models.ForeignKey(
+        Visit, related_name="prescriptions", on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
     template_used = models.ForeignKey(
         PrescriptionTemplate, null=True, blank=True, on_delete=models.SET_NULL
     )

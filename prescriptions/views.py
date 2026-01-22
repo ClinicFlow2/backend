@@ -104,7 +104,7 @@ class PrescriptionTemplateViewSet(viewsets.ModelViewSet):
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = (
         Prescription.objects.all()
-        .select_related("visit", "visit__patient")
+        .select_related("patient", "visit")
         .prefetch_related("items__medication")
         .order_by("-created_at")
     )
@@ -124,7 +124,7 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
         patient_id = self.request.query_params.get("patient")
         if patient_id:
-            qs = qs.filter(visit__patient_id=patient_id)
+            qs = qs.filter(patient_id=patient_id)
 
         return qs
 
@@ -214,10 +214,10 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         content.append(Spacer(1, 10))
 
         # Prescription info
-        patient = rx.visit.patient
+        patient = rx.patient
         patient_name = f"{patient.first_name} {patient.last_name}"
         patient_code = getattr(patient, 'patient_code', None) or "-"
-        visit_date = rx.visit.visit_date.strftime("%d/%m/%Y %H:%M") if rx.visit.visit_date else "-"
+        visit_date = rx.visit.visit_date.strftime("%d/%m/%Y %H:%M") if rx.visit and rx.visit.visit_date else "-"
         created_date = rx.created_at.strftime("%d/%m/%Y %H:%M") if rx.created_at else "-"
 
         # Patient info table

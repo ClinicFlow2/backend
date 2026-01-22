@@ -27,9 +27,12 @@ class AppointmentListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """
+        All authenticated staff can see all appointments.
+        Optional filters: ?patient=<id>, ?status=<status>, ?upcoming=true
+        """
         qs = (
             Appointment.objects.select_related("patient", "visit", "doctor", "doctor__profile")
-            .filter(patient__created_by=self.request.user)
             .order_by("-scheduled_at")
         )
 
@@ -55,6 +58,5 @@ class AppointmentDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Appointment.objects.select_related("patient", "visit", "doctor", "doctor__profile").filter(
-            patient__created_by=self.request.user
-        )
+        # All authenticated staff can access any appointment
+        return Appointment.objects.select_related("patient", "visit", "doctor", "doctor__profile")

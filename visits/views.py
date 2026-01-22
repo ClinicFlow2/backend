@@ -12,12 +12,11 @@ class VisitListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """
-        Only visits for patients owned by the logged-in doctor.
+        All authenticated staff can see all visits.
         Optional filter: ?patient=<patient_id>
         """
         qs = (
             Visit.objects.select_related("patient", "patient__created_by")
-            .filter(patient__created_by=self.request.user)
             .order_by("-visit_date")
         )
 
@@ -29,13 +28,11 @@ class VisitListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         """
-        Prevent creating a visit for someone else's patient.
+        Any authenticated user can create a visit for any patient.
         """
         patient = serializer.validated_data.get("patient")
         if not patient:
             raise PermissionDenied("Patient is required.")
-        if patient.created_by_id != self.request.user.id:
-            raise PermissionDenied("You cannot create a visit for this patient.")
 
         serializer.save()
 
@@ -45,10 +42,8 @@ class VisitDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            Visit.objects.select_related("patient", "patient__created_by")
-            .filter(patient__created_by=self.request.user)
-        )
+        # All authenticated staff can access any visit
+        return Visit.objects.select_related("patient", "patient__created_by")
 
 
 class VitalSignListCreateAPIView(generics.ListCreateAPIView):
@@ -57,7 +52,7 @@ class VitalSignListCreateAPIView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """
-        Only vitals for visits that belong to my patients.
+        All authenticated staff can see all vitals.
         Optional filter: ?visit=<visit_id>
         """
         qs = (
@@ -66,7 +61,6 @@ class VitalSignListCreateAPIView(generics.ListCreateAPIView):
                 "visit__patient",
                 "visit__patient__created_by",
             )
-            .filter(visit__patient__created_by=self.request.user)
             .order_by("-measured_at")
         )
 
@@ -78,14 +72,11 @@ class VitalSignListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         """
-        Prevent creating vitals for a visit that doesn't belong to my patients.
+        Any authenticated user can add vitals to any visit.
         """
         visit = serializer.validated_data.get("visit")
         if not visit:
             raise PermissionDenied("Visit is required.")
-
-        if visit.patient.created_by_id != self.request.user.id:
-            raise PermissionDenied("You cannot add vitals to this visit.")
 
         serializer.save()
 
@@ -95,11 +86,9 @@ class VitalSignDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            VitalSign.objects.select_related(
-                "visit",
-                "visit__patient",
-                "visit__patient__created_by",
-            )
-            .filter(visit__patient__created_by=self.request.user)
+        # All authenticated staff can access any vital sign
+        return VitalSign.objects.select_related(
+            "visit",
+            "visit__patient",
+            "visit__patient__created_by",
         )

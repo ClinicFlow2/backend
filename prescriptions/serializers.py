@@ -49,12 +49,21 @@ class PrescriptionItemReadSerializer(serializers.ModelSerializer):
         ]
 
 
+# -------- Nested Patient (for prescription list/detail) --------
+class PatientNestedSerializer(serializers.Serializer):
+    """Lightweight nested patient for prescriptions."""
+    id = serializers.IntegerField()
+    patient_code = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+
+
 # -------- Prescription (LIST) --------
 # Used for: GET /api/prescriptions/  (Option A UI)
 # Shows patient name + visit number alongside each saved prescription.
 class PrescriptionListSerializer(serializers.ModelSerializer):
-    visit_id = serializers.IntegerField(source="visit.id", read_only=True)
-    patient_id = serializers.IntegerField(source="visit.patient.id", read_only=True)
+    visit_id = serializers.SerializerMethodField()
+    patient_id = serializers.IntegerField(source="patient.id", read_only=True)
     patient_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -68,8 +77,11 @@ class PrescriptionListSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_visit_id(self, obj):
+        return obj.visit.id if obj.visit else None
+
     def get_patient_name(self, obj):
-        patient = getattr(obj.visit, "patient", None)
+        patient = obj.patient
         if not patient:
             return ""
         first = getattr(patient, "first_name", "") or ""
@@ -85,6 +97,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         model = Prescription
         fields = [
             "id",
+            "patient",
             "visit",
             "template_used",
             "notes",
@@ -96,6 +109,12 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
+
+        # If visit is provided but patient is not, get patient from visit
+        visit = validated_data.get("visit")
+        if visit and "patient" not in validated_data:
+            validated_data["patient"] = visit.patient
+
         prescription = Prescription.objects.create(**validated_data)
 
         PrescriptionItem.objects.bulk_create(
@@ -125,27 +144,24 @@ class VisitNestedSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     visit_date = serializers.DateTimeField()
     visit_type = serializers.CharField()
-    patient = serializers.SerializerMethodField()
 
-    def get_patient(self, obj):
-        p = obj.patient
-        return {
-            "id": p.id,
-            "patient_code": p.patient_code,
-            "first_name": p.first_name,
-            "last_name": p.last_name,
-        }
+    def to_representation(self, instance):
+        if instance is None:
+            return None
+        return super().to_representation(instance)
 
 
 # -------- Prescription (READ detail) --------
 class PrescriptionDetailSerializer(serializers.ModelSerializer):
     items = PrescriptionItemReadSerializer(many=True)
-    visit = VisitNestedSerializer(read_only=True)
+    patient = PatientNestedSerializer(read_only=True)
+    visit = VisitNestedSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Prescription
         fields = [
             "id",
+            "patient",
             "visit",
             "template_used",
             "notes",
