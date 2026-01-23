@@ -145,16 +145,18 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         if prescriber_name == "Dr.":
             prescriber_name = f"Dr. {user.username}"
 
-        # Try to get profile info (license, department, specialty)
+        # Try to get profile info (license, department, specialty, bio)
         license_number = ""
         department = ""
         specialty = ""
+        bio = ""
         try:
             if hasattr(user, 'profile'):
                 profile = user.profile
                 license_number = profile.license_number or ""
                 department = profile.department or ""
                 specialty = profile.specialization or ""
+                bio = profile.bio or ""
         except Exception:
             pass
 
@@ -219,6 +221,12 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
             content.append(Paragraph(f"{t['specialty']} {specialty}", doctor_info_style))
         if license_number:
             content.append(Paragraph(f"{t['license']} {license_number}", doctor_info_style))
+        # Bio with newlines preserved
+        if bio:
+            content.append(Spacer(1, 5))
+            for line in bio.split('\n'):
+                if line.strip():
+                    content.append(Paragraph(line.strip(), doctor_info_style))
         content.append(Spacer(1, 15))
 
         # Title centered
