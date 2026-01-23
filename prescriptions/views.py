@@ -269,7 +269,7 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                     item.duration or "-",
                 ])
 
-            med_table = Table(med_data, colWidths=[20, 130, 70, 50, 70, 50])
+            med_table = Table(med_data, colWidths=[25, 200, 80, 60, 90, 60])
             med_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
