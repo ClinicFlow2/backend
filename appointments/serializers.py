@@ -2,8 +2,16 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import Appointment
+from patients.models import Patient
 
 User = get_user_model()
+
+
+class PatientSerializer(serializers.ModelSerializer):
+    """Minimal serializer for patient info in appointments."""
+    class Meta:
+        model = Patient
+        fields = ["id", "patient_code", "first_name", "last_name"]
 
 
 class DoctorSerializer(serializers.ModelSerializer):
@@ -26,12 +34,19 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 class AppointmentSerializer(serializers.ModelSerializer):
     doctor_details = DoctorSerializer(source='doctor', read_only=True)
+    patient = PatientSerializer(read_only=True)
+    patient_id = serializers.PrimaryKeyRelatedField(
+        queryset=Patient.objects.all(),
+        source='patient',
+        write_only=True
+    )
 
     class Meta:
         model = Appointment
         fields = [
             "id",
             "patient",
+            "patient_id",
             "doctor",
             "doctor_details",
             "scheduled_at",
