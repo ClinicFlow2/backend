@@ -142,16 +142,14 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
         # Get prescriber info (current user making the request)
         user = request.user
-        prescriber_name = f"Dr. {user.first_name} {user.last_name}".strip()
-        if prescriber_name == "Dr.":
-            prescriber_name = f"Dr. {user.username}"
 
-        # Try to get profile info (license, department, specialty, bio, clinic_address)
+        # Try to get profile info (license, department, specialty, bio, clinic_address, display_name)
         license_number = ""
         department = ""
         specialty = ""
         bio = ""
         clinic_address = ""
+        display_name = ""
         try:
             if hasattr(user, 'profile'):
                 profile = user.profile
@@ -160,8 +158,17 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                 specialty = profile.specialization or ""
                 bio = profile.bio or ""
                 clinic_address = profile.clinic_address or ""
+                display_name = profile.display_name or ""
         except Exception:
             pass
+
+        # Use display_name if set, otherwise fall back to first/last name
+        if display_name:
+            prescriber_name = display_name
+        else:
+            prescriber_name = f"Dr. {user.first_name} {user.last_name}".strip()
+            if prescriber_name == "Dr.":
+                prescriber_name = f"Dr. {user.username}"
 
         # Generate PDF
         buffer = BytesIO()
@@ -216,12 +223,28 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         # Build content
         content = []
 
-        # Doctor bio at top left (with newlines preserved)
+        # Doctor header at top left
+        # Line 1: Display name (bold, larger font)
+        content.append(Paragraph(prescriber_name, doctor_name_style))
+
+        # Line 2: Specialty (bold, normal font)
+        if specialty:
+            specialty_style = ParagraphStyle(
+                'SpecialtyStyle',
+                parent=styles['Normal'],
+                fontSize=11,
+                fontName='Helvetica-Bold',
+                spaceAfter=2,
+            )
+            content.append(Paragraph(specialty.upper(), specialty_style))
+
+        # Additional bio info (normal font) - for things like certifications, clinic hours
         if bio:
             for line in bio.split('\n'):
                 if line.strip():
                     content.append(Paragraph(line.strip(), doctor_info_style))
-            content.append(Spacer(1, 15))
+
+        content.append(Spacer(1, 15))
 
         # Title centered
         content.append(Paragraph(t["title"], title_style))

@@ -38,6 +38,11 @@ class UserProfile(models.Model):
     )
     department = models.CharField(max_length=100, blank=True)
     hire_date = models.DateField(null=True, blank=True)
+    display_name = models.CharField(
+        max_length=150,
+        blank=True,
+        help_text="Custom name for documents (e.g., 'Dr MUKWAMU B. Justin'). If blank, uses first/last name."
+    )
     bio = models.TextField(blank=True)
     clinic_address = models.TextField(
         blank=True,
