@@ -120,6 +120,11 @@ class PrescriptionSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
 
+        # Automatically set the prescriber to the current user
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            validated_data["prescriber"] = request.user
+
         prescription = Prescription.objects.create(**validated_data)
 
         PrescriptionItem.objects.bulk_create(

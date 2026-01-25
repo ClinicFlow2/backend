@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from visits.models import Visit
 
 
@@ -51,6 +52,10 @@ class Prescription(models.Model):
     visit = models.ForeignKey(
         Visit, related_name="prescriptions", on_delete=models.SET_NULL,
         null=True, blank=True
+    )
+    prescriber = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="prescriptions",
+        on_delete=models.SET_NULL, null=True, blank=True
     )
     template_used = models.ForeignKey(
         PrescriptionTemplate, null=True, blank=True, on_delete=models.SET_NULL

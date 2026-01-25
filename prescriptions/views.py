@@ -93,7 +93,7 @@ class PrescriptionTemplateViewSet(viewsets.ModelViewSet):
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = (
         Prescription.objects.all()
-        .select_related("patient", "visit")
+        .select_related("patient", "visit", "prescriber", "prescriber__profile")
         .prefetch_related("items__medication")
         .order_by("-created_at")
     )
@@ -144,12 +144,14 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         """
         GET /api/prescriptions/{id}/pdf/
         Returns a PDF prescription in French.
+        Uses the prescription's prescriber (doctor who created it), not the logged-in user.
         """
         rx = self.get_object()
         t = PDF_TRANSLATIONS
 
-        # Get prescriber info (current user making the request)
-        user = request.user
+        # Get prescriber info from the prescription's prescriber, not the requesting user
+        # Fall back to requesting user only if prescriber is not set (for old prescriptions)
+        user = rx.prescriber if rx.prescriber else request.user
 
         # Try to get profile info (license, department, specialty, bio, clinic_address, display_name)
         license_number = ""
