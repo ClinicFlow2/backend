@@ -21,7 +21,6 @@ from appointments.services.sms import send_sms
 
 logger = logging.getLogger(__name__)
 
-
 SMS_TEMPLATE = """Rappel de rendez-vous médical
 
 Bonjour {prenom} {nom},
@@ -38,7 +37,7 @@ class Command(BaseCommand):
     help = "Send SMS reminders for appointments scheduled for tomorrow"
 
     def handle(self, *args, **options):
-        # Get clinic timezone
+        # Get clinic timezone (Render env: CLINIC_TIMEZONE=Africa/Kinshasa)
         tz_name = getattr(settings, "CLINIC_TIMEZONE", "Africa/Kinshasa")
         clinic_tz = ZoneInfo(tz_name)
 
@@ -62,15 +61,17 @@ class Command(BaseCommand):
 
         # Find appointments for tomorrow that haven't received a reminder
         # Only include appointments with reminders_enabled=True
-        appointments = Appointment.objects.filter(
-            scheduled_at__gte=start_utc,
-            scheduled_at__lt=end_utc,
-            status__in=["SCHEDULED", "CONFIRMED"],
-            reminders_enabled=True,
-            reminder_sent_at__isnull=True,
-        ).exclude(
-            Q(patient__phone__isnull=True) | Q(patient__phone="")
-        ).select_related("patient")
+        appointments = (
+            Appointment.objects.filter(
+                scheduled_at__gte=start_utc,
+                scheduled_at__lt=end_utc,
+                status__in=["SCHEDULED", "CONFIRMED"],
+                reminders_enabled=True,
+                reminder_sent_at__isnull=True,
+            )
+            .exclude(Q(patient__phone__isnull=True) | Q(patient__phone=""))
+            .select_related("patient")
+        )
 
         total = appointments.count()
         self.stdout.write(f"Found {total} appointment(s) to remind")

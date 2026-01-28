@@ -12,6 +12,7 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load .env early so DATABASE_URL and all secrets are available
 load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-dev-key")
@@ -26,11 +27,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt",
-
     "accounts",
     "patients",
     "visits",
@@ -41,7 +40,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -52,7 +50,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
 # CORS: Read additional origins from environment variable
 _default_cors = [
     "http://localhost:5173",
@@ -60,8 +57,6 @@ _default_cors = [
 ]
 _extra_cors = os.getenv("CORS_ALLOWED_ORIGINS", "")
 CORS_ALLOWED_ORIGINS = _default_cors + [url.strip() for url in _extra_cors.split(",") if url.strip()]
-
-
 
 ROOT_URLCONF = "config.urls"
 
@@ -105,7 +100,11 @@ LANGUAGES = [
     ("fr", _("French")),
 ]
 
-TIME_ZONE = "UTC"
+# Clinic timezone for appointment reminders
+CLINIC_TIMEZONE = os.getenv("CLINIC_TIMEZONE", "Africa/Kinshasa")
+
+# Django timezone (keep USE_TZ=True; DB stored in UTC, Django displays using TIME_ZONE)
+TIME_ZONE = CLINIC_TIMEZONE
 USE_I18N = True
 USE_TZ = True
 
@@ -159,7 +158,6 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-
     # Pagination (global) - allows client to specify page_size up to 500
     "DEFAULT_PAGINATION_CLASS": "config.pagination.FlexiblePageNumberPagination",
     "PAGE_SIZE": 10,
@@ -171,6 +169,3 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AFRICASTALKING_USERNAME = os.getenv("AFRICASTALKING_USERNAME")
 AFRICASTALKING_API_KEY = os.getenv("AFRICASTALKING_API_KEY")
 AFRICASTALKING_SENDER_ID = os.getenv("AFRICASTALKING_SENDER_ID", "")
-
-# Clinic timezone for appointment reminders
-CLINIC_TIMEZONE = os.getenv("CLINIC_TIMEZONE", "Africa/Kinshasa")

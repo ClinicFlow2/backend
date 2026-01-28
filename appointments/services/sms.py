@@ -43,16 +43,16 @@ def send_sms(phone_number: str, message: str) -> bool:
 
         response = sms.send(**kwargs)
 
-        # Check response for success
         # Africa's Talking returns: {"SMSMessageData": {"Recipients": [{"status": "Success", ...}]}}
+
         recipients = response.get("SMSMessageData", {}).get("Recipients", [])
         if recipients and recipients[0].get("status") == "Success":
             logger.info(f"SMS sent successfully to {phone_number}")
             return True
-        else:
-            status = recipients[0].get("status") if recipients else "Unknown"
-            logger.warning(f"SMS send failed for {phone_number}: {status}")
-            return False
+
+        status = recipients[0].get("status") if recipients else "Unknown"
+        logger.warning(f"SMS send failed for {phone_number}: {status}")
+        return False
 
     except Exception as e:
         logger.error(f"SMS send error for {phone_number}: {e}")
