@@ -54,6 +54,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "reason",
             "notes",
             "visit",
+            "reminders_enabled",
             "created_at",
             "updated_at",
         ]

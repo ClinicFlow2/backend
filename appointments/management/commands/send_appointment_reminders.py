@@ -61,10 +61,12 @@ class Command(BaseCommand):
         self.stdout.write(f"Query range (UTC): {start_utc} to {end_utc}")
 
         # Find appointments for tomorrow that haven't received a reminder
+        # Only include appointments with reminders_enabled=True
         appointments = Appointment.objects.filter(
             scheduled_at__gte=start_utc,
             scheduled_at__lt=end_utc,
             status__in=["SCHEDULED", "CONFIRMED"],
+            reminders_enabled=True,
             reminder_sent_at__isnull=True,
         ).exclude(
             Q(patient__phone__isnull=True) | Q(patient__phone="")

@@ -48,7 +48,8 @@ class Appointment(models.Model):
         related_name="appointment",
     )
 
-    # SMS reminder tracking
+    # SMS reminder settings
+    reminders_enabled = models.BooleanField(default=False)
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
