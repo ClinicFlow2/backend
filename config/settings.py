@@ -168,3 +168,11 @@ REST_FRAMEWORK = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Africa's Talking SMS Configuration
+AFRICASTALKING_USERNAME = os.getenv("AFRICASTALKING_USERNAME")
+AFRICASTALKING_API_KEY = os.getenv("AFRICASTALKING_API_KEY")
+AFRICASTALKING_SENDER_ID = os.getenv("AFRICASTALKING_SENDER_ID", "")
+
+# Clinic timezone for appointment reminders
+CLINIC_TIMEZONE = os.getenv("CLINIC_TIMEZONE", "Africa/Kinshasa")
