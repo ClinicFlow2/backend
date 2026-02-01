@@ -60,6 +60,11 @@ class Appointment(models.Model):
         indexes = [
             models.Index(fields=["scheduled_at"]),
             models.Index(fields=["status"]),
+            # Optimise the daily reminder query
+            models.Index(
+                fields=["reminders_enabled", "reminder_sent_at", "scheduled_at", "status"],
+                name="idx_reminder_query",
+            ),
         ]
 
     def clean(self):
@@ -74,3 +79,39 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"Appointment #{self.id} - {self.patient} - {self.scheduled_at:%Y-%m-%d %H:%M}"
+
+
+class AppointmentSMSLog(models.Model):
+    """
+    Immutable log of every SMS send attempt for appointment reminders.
+    One row per attempt — successful or failed.
+    """
+
+    STATUS_CHOICES = (
+        ("SUCCESS", "Success"),
+        ("FAILED", "Failed"),
+    )
+
+    appointment = models.ForeignKey(
+        Appointment,
+        on_delete=models.CASCADE,
+        related_name="sms_logs",
+    )
+    phone = models.CharField(max_length=30, help_text="E.164 phone number sent to")
+    provider = models.CharField(max_length=30, default="africastalking")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    message_id = models.CharField(
+        max_length=100, blank=True, default="",
+        help_text="Provider message ID for delivery tracking",
+    )
+    error_message = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["appointment", "status"]),
+        ]
+
+    def __str__(self):
+        return f"SMS {self.status} → {self.phone} (appt #{self.appointment_id})"

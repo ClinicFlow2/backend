@@ -22,15 +22,25 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY
 # =============================================================================
 # Support both naming conventions (Render uses SECRET_KEY, local might use DJANGO_SECRET_KEY)
-SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("DJANGO_SECRET_KEY") or "unsafe-dev-key-change-me"
+SECRET_KEY = os.getenv("SECRET_KEY") or os.getenv("DJANGO_SECRET_KEY")
 
 # Default to False for production safety
 _debug_val = os.getenv("DEBUG") or os.getenv("DJANGO_DEBUG") or "False"
 DEBUG = _debug_val.lower() in ("true", "1", "yes")
 
-# Print debug info at startup (visible in Render logs)
+# In production, SECRET_KEY is mandatory. In dev, allow a fallback.
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "unsafe-dev-key-change-me"
+    else:
+        raise ValueError(
+            "SECRET_KEY environment variable is required when DEBUG=False. "
+            "Set SECRET_KEY in your Render environment variables."
+        )
+
+# Startup diagnostics (safe — no secret values printed)
 print(f"[SETTINGS] DEBUG={DEBUG}", file=sys.stderr)
-print(f"[SETTINGS] SECRET_KEY set: {bool(os.getenv('SECRET_KEY') or os.getenv('DJANGO_SECRET_KEY'))}", file=sys.stderr)
+print(f"[SETTINGS] SECRET_KEY configured: {bool(os.getenv('SECRET_KEY') or os.getenv('DJANGO_SECRET_KEY'))}", file=sys.stderr)
 
 # =============================================================================
 # ALLOWED_HOSTS
@@ -44,7 +54,6 @@ ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 # Add Render hostname if present (critical for production)
 if render_hostname:
     ALLOWED_HOSTS.append(render_hostname)
-    print(f"[SETTINGS] Added RENDER_EXTERNAL_HOSTNAME: {render_hostname}", file=sys.stderr)
 
 # Add any extra hosts from environment (comma-separated)
 extra_hosts = os.getenv("ALLOWED_HOSTS", "")
@@ -53,7 +62,7 @@ for host in extra_hosts.split(","):
     if host and host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(host)
 
-print(f"[SETTINGS] ALLOWED_HOSTS={ALLOWED_HOSTS}", file=sys.stderr)
+print(f"[SETTINGS] ALLOWED_HOSTS count: {len(ALLOWED_HOSTS)}", file=sys.stderr)
 
 # =============================================================================
 # CORS - Critical for frontend API calls
@@ -74,7 +83,7 @@ for origin in cors_env.split(","):
     if origin and origin not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(origin)
 
-print(f"[SETTINGS] CORS_ALLOWED_ORIGINS={CORS_ALLOWED_ORIGINS}", file=sys.stderr)
+print(f"[SETTINGS] CORS_ALLOWED_ORIGINS count: {len(CORS_ALLOWED_ORIGINS)}", file=sys.stderr)
 
 # Allow credentials (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True
@@ -109,7 +118,7 @@ for origin in csrf_env.split(","):
     if origin and origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
-print(f"[SETTINGS] CSRF_TRUSTED_ORIGINS={CSRF_TRUSTED_ORIGINS}", file=sys.stderr)
+print(f"[SETTINGS] CSRF_TRUSTED_ORIGINS count: {len(CSRF_TRUSTED_ORIGINS)}", file=sys.stderr)
 
 # =============================================================================
 # INSTALLED APPS
@@ -185,7 +194,7 @@ DATABASES = {
     )
 }
 
-print(f"[SETTINGS] DATABASE: {DATABASES['default'].get('ENGINE', 'unknown')}", file=sys.stderr)
+print(f"[SETTINGS] DB engine: {DATABASES['default'].get('ENGINE', 'unknown')}", file=sys.stderr)
 
 # =============================================================================
 # AUTH
@@ -312,6 +321,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AFRICASTALKING_USERNAME = os.getenv("AFRICASTALKING_USERNAME")
 AFRICASTALKING_API_KEY = os.getenv("AFRICASTALKING_API_KEY")
 AFRICASTALKING_SENDER_ID = os.getenv("AFRICASTALKING_SENDER_ID", "")
+
+# =============================================================================
+# CLINIC SMS SETTINGS
+# =============================================================================
+CLINIC_PHONE = os.getenv("CLINIC_PHONE", "")
+SMS_MAX_REMINDERS_PER_RUN = int(os.getenv("SMS_MAX_REMINDERS_PER_RUN", "200"))
 
 # =============================================================================
 # LOGGING - Essential for debugging on Render
