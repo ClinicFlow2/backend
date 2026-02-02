@@ -11,6 +11,7 @@ class Appointment(models.Model):
         ("CANCELLED", "Cancelled"),
         ("COMPLETED", "Completed"),
         ("NO_SHOW", "No-show"),
+        ("RESCHEDULED", "Rescheduled"),
     )
 
     patient = models.ForeignKey(
@@ -69,7 +70,7 @@ class Appointment(models.Model):
 
     def clean(self):
         # Prevent creating/updating to the past (except if already completed/cancelled)
-        if self.scheduled_at and self.status in {"SCHEDULED", "CONFIRMED"}:
+        if self.scheduled_at and self.status in {"SCHEDULED", "CONFIRMED", "RESCHEDULED"}:
             if self.scheduled_at < timezone.now():
                 raise ValidationError({"scheduled_at": "Appointment cannot be in the past."})
 
