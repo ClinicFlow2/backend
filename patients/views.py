@@ -52,9 +52,9 @@ class PatientListCreateView(generics.ListCreateAPIView):
         # Only admins can view archived patients
         show_archived = self.request.query_params.get('archived', 'false').lower() == 'true'
         if show_archived and is_admin:
-            pass  # Show all including archived
+            qs = qs.filter(is_active=False)  # ONLY archived
         else:
-            qs = qs.filter(is_active=True)
+            qs = qs.filter(is_active=True)   # default: active only
 
         return (
             qs.annotate(
