@@ -1,12 +1,44 @@
+from io import StringIO
+
+from django.conf import settings
+from django.core.management import call_command
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+from django.views import View
+
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from .models import Appointment
 from .serializers import AppointmentSerializer, DoctorSerializer
 
 User = get_user_model()
+
+
+class TriggerSmsRemindersView(View):
+    """
+    Cron endpoint to trigger SMS reminders.
+    Protected by a secret token passed as query param: ?token=YOUR_CRON_SECRET
+    """
+
+    def get(self, request):
+        # Verify the secret token
+        token = request.GET.get("token", "")
+        expected_token = getattr(settings, "CRON_SECRET_TOKEN", "")
+
+        if not expected_token or token != expected_token:
+            return HttpResponse("Unauthorized", status=401)
+
+        # Run the management command and capture output
+        output = StringIO()
+        try:
+            call_command("send_appointment_reminders", stdout=output)
+            result = output.getvalue()
+            return HttpResponse(f"OK\n{result}", status=200, content_type="text/plain")
+        except Exception as e:
+            return HttpResponse(f"Error: {str(e)}", status=500, content_type="text/plain")
 
 
 class DoctorListAPIView(APIView):

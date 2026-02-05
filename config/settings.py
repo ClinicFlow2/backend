@@ -329,6 +329,12 @@ CLINIC_PHONE = os.getenv("CLINIC_PHONE", "")
 SMS_MAX_REMINDERS_PER_RUN = int(os.getenv("SMS_MAX_REMINDERS_PER_RUN", "200"))
 
 # =============================================================================
+# CRON JOB SECURITY
+# =============================================================================
+# Secret token for external cron services (cron-job.org, etc.)
+CRON_SECRET_TOKEN = os.getenv("CRON_SECRET_TOKEN", "")
+
+# =============================================================================
 # LOGGING - Essential for debugging on Render
 # =============================================================================
 LOGGING = {
