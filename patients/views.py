@@ -14,7 +14,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .models import Patient, PatientFile
 from .serializers import PatientSerializer, PatientFileSerializer
 from .pagination import PatientPagination
-from .permissions import IsPatientOwnerOrAdmin, IsRelatedPatientOwnerOrAdmin
+from .permissions import IsPatientOwnerOrAdmin, IsPatientFileOwnerOrAdmin
 
 from visits.models import Visit
 
@@ -199,7 +199,7 @@ class PatientFileViewSet(viewsets.ModelViewSet):
     - GET    /api/patients/{patient_id}/files/{id}/download/ - Download file
     """
     serializer_class = PatientFileSerializer
-    permission_classes = [IsAuthenticated, IsRelatedPatientOwnerOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatientFileOwnerOrAdmin]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):

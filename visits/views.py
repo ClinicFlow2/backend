@@ -15,7 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 from .models import Visit, VitalSign
 from .serializers import VisitSerializer, VitalSignSerializer
-from patients.permissions import IsRelatedPatientOwnerOrAdmin
+from patients.permissions import IsVisitOwnerOrAdmin, IsVitalSignOwnerOrAdmin
 
 
 def _is_admin(user):
@@ -79,26 +79,24 @@ class VisitListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         """
-        Only the patient's creator or an admin can create a visit.
+        Any authenticated user can create a visit for any patient.
+        The visit's created_by is set to the current user (the doctor creating it).
         """
         patient = serializer.validated_data.get("patient")
         if not patient:
             raise PermissionDenied("Patient is required.")
 
-        user = self.request.user
-        if not _is_admin(user) and patient.created_by != user:
-            raise PermissionDenied("You do not have permission to create visits for this patient.")
-
-        serializer.save()
+        # Save with current user as visit owner
+        serializer.save(created_by=self.request.user)
 
 
 class VisitDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = VisitSerializer
-    permission_classes = [permissions.IsAuthenticated, IsRelatedPatientOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsVisitOwnerOrAdmin]
 
     def get_queryset(self):
         # All authenticated staff can access any visit
-        return Visit.objects.select_related("patient", "patient__created_by")
+        return Visit.objects.select_related("patient", "created_by")
 
 
 class VitalSignListCreateAPIView(generics.ListCreateAPIView):
@@ -127,22 +125,22 @@ class VitalSignListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         """
-        Only the patient's creator or an admin can add vitals.
+        Only the visit's creator or an admin can add vitals to that visit.
         """
         visit = serializer.validated_data.get("visit")
         if not visit:
             raise PermissionDenied("Visit is required.")
 
         user = self.request.user
-        if not _is_admin(user) and visit.patient.created_by != user:
-            raise PermissionDenied("You do not have permission to add vitals for this patient.")
+        if not _is_admin(user) and visit.created_by != user:
+            raise PermissionDenied("You do not have permission to add vitals to this visit.")
 
         serializer.save()
 
 
 class VitalSignDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = VitalSignSerializer
-    permission_classes = [permissions.IsAuthenticated, IsRelatedPatientOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsVitalSignOwnerOrAdmin]
 
     def get_queryset(self):
         # All authenticated staff can access any vital sign

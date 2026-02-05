@@ -8,6 +8,7 @@ def _is_admin(user):
 
 class IsPatientOwnerOrAdmin(BasePermission):
     """
+    For Patient objects.
     Read access: any authenticated user.
     Write access: only the patient's created_by user, or an admin.
     """
@@ -20,13 +21,9 @@ class IsPatientOwnerOrAdmin(BasePermission):
         return obj.created_by == request.user
 
 
-class IsRelatedPatientOwnerOrAdmin(BasePermission):
+class IsPatientFileOwnerOrAdmin(BasePermission):
     """
-    For objects that belong to a patient indirectly:
-      - PatientFile  → obj.patient.created_by
-      - Visit        → obj.patient.created_by
-      - VitalSign    → obj.visit.patient.created_by
-
+    For PatientFile objects.
     Read access: any authenticated user.
     Write access: only the patient's creator or admin.
     """
@@ -36,10 +33,37 @@ class IsRelatedPatientOwnerOrAdmin(BasePermission):
             return True
         if _is_admin(request.user):
             return True
+        return obj.patient.created_by == request.user
 
-        # Walk up to the Patient object
-        if hasattr(obj, 'patient'):
-            return obj.patient.created_by == request.user
-        if hasattr(obj, 'visit'):
-            return obj.visit.patient.created_by == request.user
-        return False
+
+class IsVisitOwnerOrAdmin(BasePermission):
+    """
+    For Visit objects.
+    Read access: any authenticated user.
+    Write access: only the visit's created_by (the doctor who created it), or an admin.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        if _is_admin(request.user):
+            return True
+        # Check visit's own created_by field
+        return obj.created_by == request.user
+
+
+class IsVitalSignOwnerOrAdmin(BasePermission):
+    """
+    For VitalSign objects.
+    Read access: any authenticated user.
+    Write access: only the visit's creator (the doctor who created the visit), or an admin.
+    VitalSigns inherit ownership from their parent Visit.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        if _is_admin(request.user):
+            return True
+        # Check the parent visit's created_by
+        return obj.visit.created_by == request.user
