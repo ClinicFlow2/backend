@@ -35,8 +35,8 @@ def build_sms_message(patient, scheduled_local, doctor=None):
     """
     Build the personalised French SMS reminder message.
 
-    Uses ASCII-safe characters (no accents) to ensure SMS delivery
-    across all carriers (GSM-7 compatible).
+    Uses Unicode (UCS-2) for proper French accented characters.
+    Note: UCS-2 limits SMS to 70 chars per segment (vs 160 for GSM-7).
     """
     patient_name = f"{patient.first_name} {patient.last_name}".strip() or "Patient"
     time_str = scheduled_local.strftime("%H:%M")
@@ -48,18 +48,17 @@ def build_sms_message(patient, scheduled_local, doctor=None):
             doctor_name = doctor.username
         doctor_display = f"Dr {doctor_name}"
     else:
-        doctor_display = "votre medecin"
+        doctor_display = "votre médecin"
 
-    # Use ASCII-safe characters for GSM-7 compatibility
-    # (accented chars like e, a are stripped by some carriers)
+    # Use proper French with accented characters (requires UCS-2 encoding)
     return (
-        f"Rappel de rendez-vous medical\n\n"
+        f"Rappel de rendez-vous médical\n\n"
         f"Bonjour {patient_name},\n\n"
-        f"Ceci est un rappel de votre rendez-vous prevu demain a {time_str} avec {doctor_display}.\n\n"
+        f"Ceci est un rappel de votre rendez-vous prévu demain à {time_str} avec {doctor_display}.\n\n"
         f"Merci de bien vouloir arriver 10 minutes en avance afin de faciliter votre prise en charge.\n\n"
         f"Pour annuler ou reprogrammer, contactez-nous au +243813755317.\n\n"
         f"Cordialement,\n"
-        f"Cabinet medical."
+        f"Cabinet médical."
     )
 
 
