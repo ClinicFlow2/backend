@@ -36,7 +36,7 @@ def build_sms_message(patient, scheduled_local, doctor=None):
     Build the personalised French SMS reminder message.
 
     Uses ASCII-safe characters (no accents) for GSM-7 compatibility.
-    DRC carriers strip accented characters, so we use e/a instead of e/a.
+    DRC carriers strip accented characters.
     """
     patient_name = f"{patient.first_name} {patient.last_name}".strip() or "Patient"
     time_str = scheduled_local.strftime("%H:%M")
@@ -50,15 +50,14 @@ def build_sms_message(patient, scheduled_local, doctor=None):
     else:
         doctor_display = "votre medecin"
 
-    # ASCII-safe French (no accents - DRC carriers strip them)
+    # Short ASCII-safe French message
     return (
-        f"Rappel de rendez-vous medical\n\n"
+        f"Rappel de rendez vous\n\n"
         f"Bonjour {patient_name},\n\n"
-        f"Ceci est un rappel de votre rendez-vous prevu demain a {time_str} avec {doctor_display}.\n\n"
-        f"Merci de bien vouloir arriver 10 minutes en avance afin de faciliter votre prise en charge.\n\n"
-        f"Pour annuler ou reprogrammer, contactez-nous au +243813755317.\n\n"
-        f"Cordialement,\n"
-        f"Cabinet medical."
+        f"Rappel de votre rendez vous demain vers {time_str} avec {doctor_display}.\n\n"
+        f"Merci d arriver 10 minutes en avance.\n\n"
+        f"Pour annuler ou reprogrammer, contactez nous au +243813755317.\n\n"
+        f"Cabinet"
     )
 
 
