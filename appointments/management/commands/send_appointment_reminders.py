@@ -28,52 +28,38 @@ from appointments.services.sms import mask_phone, send_sms
 
 logger = logging.getLogger(__name__)
 
-# French month names (1-indexed)
-_FRENCH_MONTHS = {
-    1: "janvier",
-    2: "février",
-    3: "mars",
-    4: "avril",
-    5: "mai",
-    6: "juin",
-    7: "juillet",
-    8: "août",
-    9: "septembre",
-    10: "octobre",
-    11: "novembre",
-    12: "décembre",
-}
-
 ELIGIBLE_STATUSES = ["CONFIRMED", "RESCHEDULED"]
 
 
-def format_date_french(dt):
-    """Format a datetime as '3 février 2026' (French full month)."""
-    return f"{dt.day} {_FRENCH_MONTHS[dt.month]} {dt.year}"
-
-
-def build_sms_message(patient, scheduled_local):
+def build_sms_message(patient, scheduled_local, doctor=None):
     """
     Build the personalised French SMS reminder message.
 
-    Uses "Bonjour" before 18:00 Kinshasa, "Bonsoir" after.
-    Doctor is fixed: Dr Mukwamu B. Justin - Médecin pédiatre.
+    Uses ASCII-safe characters (no accents) to ensure SMS delivery
+    across all carriers (GSM-7 compatible).
     """
-    # Salutation based on current Kinshasa time
-    tz = ZoneInfo("Africa/Kinshasa")
-    now_local = timezone.now().astimezone(tz)
-    salutation = "Bonjour" if now_local.hour < 18 else "Bonsoir"
-
     patient_name = f"{patient.first_name} {patient.last_name}".strip() or "Patient"
     time_str = scheduled_local.strftime("%H:%M")
-    date_str = format_date_french(scheduled_local)
 
+    # Get doctor name from appointment
+    if doctor:
+        doctor_name = f"{doctor.first_name} {doctor.last_name}".strip()
+        if not doctor_name:
+            doctor_name = doctor.username
+        doctor_display = f"Dr {doctor_name}"
+    else:
+        doctor_display = "votre medecin"
+
+    # Use ASCII-safe characters for GSM-7 compatibility
+    # (accented chars like e, a are stripped by some carriers)
     return (
-        f"{salutation} {patient_name}, rappel : votre rendez-vous est "
-        f"demain à {time_str} ({date_str}) avec le "
-        f"Dr Mukwamu B. Justin (médecin pédiatre). "
-        f"Merci d'arriver 10 minutes en avance. "
-        f"Cordialement, l'Equipe Clinique."
+        f"Rappel de rendez-vous medical\n\n"
+        f"Bonjour {patient_name},\n\n"
+        f"Ceci est un rappel de votre rendez-vous prevu demain a {time_str} avec {doctor_display}.\n\n"
+        f"Merci de bien vouloir arriver 10 minutes en avance afin de faciliter votre prise en charge.\n\n"
+        f"Pour annuler ou reprogrammer, contactez-nous au +243813755317.\n\n"
+        f"Cordialement,\n"
+        f"Cabinet medical."
     )
 
 
@@ -145,7 +131,7 @@ class Command(BaseCommand):
                 reminders_enabled=True,
                 reminder_sent_at__isnull=True,
             )
-            .select_related("patient")
+            .select_related("patient", "doctor")
         )
 
         total_candidates = candidates.count()
@@ -207,7 +193,7 @@ class Command(BaseCommand):
 
             # --- Build message ---
             scheduled_local = appointment.scheduled_at.astimezone(clinic_tz)
-            message = build_sms_message(patient, scheduled_local)
+            message = build_sms_message(patient, scheduled_local, appointment.doctor)
 
             masked = mask_phone(phone_raw)
             self.stdout.write(f"  Sending reminder to {patient} at {masked}...")
